@@ -36,13 +36,17 @@ import androidx.core.content.ContextCompat;
 import com.google.gson.Gson;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -348,6 +352,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 String json = response.body().string();
+                writeIpJson(json);
                 Gson gson = new Gson();
                 RemoteData data = gson.fromJson(json,RemoteData.class);
                 runOnUiThread(new Runnable() {
@@ -365,8 +370,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void checkStoragePermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},PERMISSION_CODE);
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE,Manifest.permission.WRITE_EXTERNAL_STORAGE},PERMISSION_CODE);
         } else {
             initView();
             requestIP();
@@ -381,7 +388,7 @@ public class MainActivity extends AppCompatActivity {
             case PERMISSION_CODE: {
                 // 如果请求被取消，则结果数组为空。
                 if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
                     initView();
                     requestIP();
                 } else {
@@ -528,7 +535,19 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    void writeIp(String ip) {
-
+    void writeIpJson(String json) {
+        File file = new File(Environment.getExternalStorageDirectory(),"ip.json");
+        try {
+            if (!file.exists()) {
+                file.createNewFile();
+            }
+            OutputStream outputStream = new FileOutputStream(file);
+            OutputStreamWriter writer = new OutputStreamWriter(outputStream);
+            BufferedWriter bw = new BufferedWriter(writer);
+            bw.write(json);
+            bw.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
