@@ -1,0 +1,57 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.example.mywebview'
+    compileSdk 34
+
+    defaultConfig {
+        //这里设置包名
+        applicationId "com.dolphin.reader"
+        minSdk 23
+        targetSdk 28
+        versionCode 1
+        //这里设置版本号
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.9.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+
+//    implementation 'com.squareup.okio:okio:1.5.0'
+
+    implementation 'com.google.code.gson:gson:2.6.2'
+//    implementation "org.mozilla.geckoview:geckoview:98.0.20220228162945"
+    implementation "org.mozilla.geckoview:geckoview:125.0.20240419144423"
+}
