@@ -147,6 +147,11 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"/>
+        <CheckBox
+            android:text="auto"
+            android:id="@+id/autoRefresh"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
     </LinearLayout>
     <LinearLayout
         android:layout_gravity="center"

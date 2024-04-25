@@ -11,6 +11,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Message;
 import android.text.InputFilter;
 import android.text.Spanned;
 import android.text.format.Formatter;
@@ -22,7 +23,9 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -39,9 +42,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -58,7 +59,6 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-import org.json.JSONObject;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoRuntime;
 import org.mozilla.geckoview.GeckoSession;
@@ -104,6 +104,8 @@ public class MainActivity extends AppCompatActivity {
     TextView remoteRegion;
     ImageView remoteRefresh;
 
+    CheckBox autoRefresh;
+
     GeckoSession session = new GeckoSession();
     GeckoRuntime runtime;
 
@@ -118,13 +120,37 @@ public class MainActivity extends AppCompatActivity {
 
     boolean initGeckoView = false;
 
+    int REFRESH_HEIGHT = 0x01;
+
+    int REFRESH_CANCEL = 0x02;
+
+    Handler handler;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 //        requestIP();
 //        initView();
+        dataInit();
         checkStoragePermission();
+    }
+
+    void dataInit() {
+        handler = new Handler(getMainLooper()) {
+            @Override
+            public void handleMessage(@NonNull Message msg) {
+                if (msg.what == REFRESH_HEIGHT) {
+                    if (webFlag == 1) {
+                        pageHeight = webview.getContentHeight();
+                    } else {
+//                        pageHeight =
+                    }
+                } else if (msg.what == REFRESH_CANCEL) {
+                    handler.removeMessages(REFRESH_HEIGHT);
+                }
+            }
+        };
     }
 
 
@@ -155,6 +181,7 @@ public class MainActivity extends AppCompatActivity {
         remoteCity = findViewById(R.id.remoteCity);
         remoteRegion = findViewById(R.id.remoteRegion);
         remoteRefresh = findViewById(R.id.refreshRemote);
+        autoRefresh = findViewById(R.id.autoRefresh);
 
         WebSettings settings = webview.getSettings();
         // 如果访问的页面中有JavaScript，则WebView必须设置支持JavaScript，否则显示空白页面
@@ -278,6 +305,17 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 requestIP();
+            }
+        });
+
+        autoRefresh.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    handler.sendEmptyMessage(REFRESH_HEIGHT);
+                } else {
+                    handler.sendEmptyMessage(REFRESH_CANCEL);
+                }
             }
         });
 
