@@ -141,10 +141,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void handleMessage(@NonNull Message msg) {
                 if (msg.what == REFRESH_HEIGHT) {
-                    if (webFlag == 1) {
-                        pageHeight = webview.getContentHeight();
-                    } else {
-//                        pageHeight =
+                    if (webFlag == 2) {
+                        installBuilderHeight();
                     }
                 } else if (msg.what == REFRESH_CANCEL) {
                     handler.removeMessages(REFRESH_HEIGHT);
@@ -470,6 +468,9 @@ public class MainActivity extends AppCompatActivity {
             public void onLocationChange(@NonNull GeckoSession session, @Nullable String url, @NonNull List<GeckoSession.PermissionDelegate.ContentPermission> perms, @NonNull Boolean hasUserGesture) {
                 NavigationDelegate.super.onLocationChange(session, url, perms, hasUserGesture);
                 input.setText(url);
+                //移除之前的message
+                handler.removeMessages(REFRESH_HEIGHT);
+                handler.sendEmptyMessageDelayed(REFRESH_HEIGHT,500);
             }
 
         });
@@ -483,46 +484,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageStop(@NonNull GeckoSession session, boolean success) {
                 ProgressDelegate.super.onPageStop(session, success);
-                new Handler(getMainLooper()).postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        runtime.getWebExtensionController().installBuiltIn("resource://android/assets/messaging/")
-                                .accept(new GeckoResult.Consumer<WebExtension>() {
-                                    @Override
-                                    public void accept(@Nullable WebExtension webExtension) {
-                                        if (webExtension != null) {
-                                            runOnUiThread(new Runnable() {
-                                                @Override
-                                                public void run() {
-                                                    session.getWebExtensionController().setMessageDelegate(webExtension, new WebExtension.MessageDelegate() {
-                                                        @Nullable
-                                                        @Override
-                                                        public GeckoResult<Object> onMessage(@NonNull String nativeApp, @NonNull Object message, @NonNull WebExtension.MessageSender sender) {
-                                                            Log.i("MainActivity", message.toString());
-                                                            pageHeight = Integer.parseInt(message.toString());
-                                                            return WebExtension.MessageDelegate.super.onMessage(nativeApp, message, sender);
-                                                        }
-
-                                                        @Nullable
-                                                        @Override
-                                                        public void onConnect(@NonNull WebExtension.Port port) {
-                                                            Log.i("MainActivity", "onConnect");
-                                                            WebExtension.MessageDelegate.super.onConnect(port);
-                                                        }
-                                                    }, "browser");
-                                                }
-                                            });
-                                        }
-                                    }
-                                }, new GeckoResult.Consumer<Throwable>() {
-                                    @Override
-                                    public void accept(@Nullable Throwable throwable) {
-                                        Log.e("MainActivity", "error register",throwable);
-                                    }
-                                });
-                    }
-                },50);
-
+                verticalProgress.setText(String.valueOf(0));
             }
         });
 
@@ -551,6 +513,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        handler.removeMessages(REFRESH_HEIGHT);
         if (runtime != null) {
             runtime.shutdown();
         }
@@ -588,4 +551,44 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+
+    void installBuilderHeight() {
+        runtime.getWebExtensionController().installBuiltIn("resource://android/assets/messaging/")
+                .accept(new GeckoResult.Consumer<WebExtension>() {
+                    @Override
+                    public void accept(@Nullable WebExtension webExtension) {
+                        if (webExtension != null) {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    session.getWebExtensionController().setMessageDelegate(webExtension, new WebExtension.MessageDelegate() {
+                                        @Nullable
+                                        @Override
+                                        public GeckoResult<Object> onMessage(@NonNull String nativeApp, @NonNull Object message, @NonNull WebExtension.MessageSender sender) {
+                                            Log.i("MainActivity Height", message.toString());
+                                            pageHeight = Integer.parseInt(message.toString());
+                                            handler.sendEmptyMessageDelayed(REFRESH_HEIGHT, 1000);
+                                            return WebExtension.MessageDelegate.super.onMessage(nativeApp, message, sender);
+                                        }
+
+                                        @Nullable
+                                        @Override
+                                        public void onConnect(@NonNull WebExtension.Port port) {
+                                            Log.i("MainActivity", "onConnect");
+                                            WebExtension.MessageDelegate.super.onConnect(port);
+                                        }
+                                    }, "browser");
+                                }
+                            });
+                        }
+                    }
+                }, new GeckoResult.Consumer<Throwable>() {
+                    @Override
+                    public void accept(@Nullable Throwable throwable) {
+                        Log.e("MainActivity", "error register", throwable);
+                    }
+                });
+    }
+
+
 }
