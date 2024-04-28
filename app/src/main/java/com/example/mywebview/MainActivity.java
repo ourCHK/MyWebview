@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.RectF;
+import android.net.http.SslError;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -19,7 +20,11 @@ import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.InputMethodManager;
+import android.webkit.MimeTypeMap;
+import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -38,27 +43,41 @@ import androidx.core.content.ContextCompat;
 
 import com.google.gson.Gson;
 
+import com.google.gson.reflect.TypeToken;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+import kotlin.Pair;
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.Headers;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
+import okhttp3.internal.http2.Header;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoRuntime;
 import org.mozilla.geckoview.GeckoSession;
@@ -72,6 +91,10 @@ import org.mozilla.geckoview.WebExtension;
 public class MainActivity extends AppCompatActivity {
 
     public final static int PERMISSION_CODE = 1;
+
+    public final static String IMAGE_CACHE_PATH = "ImageCache";
+
+    public final static String IMAGE_CACHE_NAME = "imageCache.json";
 
     WebView webview;
 
@@ -126,6 +149,10 @@ public class MainActivity extends AppCompatActivity {
 
     Handler handler;
 
+    OkHttpClient okHttpClient = new OkHttpClient();
+
+    HashMap<String,String> mCacheMap = new HashMap<>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -137,6 +164,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void dataInit() {
+        readImageCache();
         handler = new Handler(getMainLooper()) {
             @Override
             public void handleMessage(@NonNull Message msg) {
@@ -184,7 +212,12 @@ public class MainActivity extends AppCompatActivity {
         WebSettings settings = webview.getSettings();
         // 如果访问的页面中有JavaScript，则WebView必须设置支持JavaScript，否则显示空白页面
         settings.setJavaScriptEnabled(true);
-        settings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        }
+        settings.setAllowContentAccess(true);
+        settings.setDomStorageEnabled(true);
+        settings.setDatabaseEnabled(true);
         webview.setWebViewClient(new WebViewClient() {
 
             @Override
@@ -194,9 +227,85 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                view.loadUrl(url);
-                return true;
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+
+                String url = request.getUrl().toString();
+                Log.i("MainActivity Cache","start "+url);
+                if (url.endsWith(".css") || url.endsWith(".js") || !url.startsWith("http")) {
+                    return super.shouldInterceptRequest(view, request);
+                }
+                String md5Key = calculateMD5(url);
+                if (md5Key == null) {
+                    return super.shouldInterceptRequest(view,request);
+                }
+                String filePath = getImageCachePath(md5Key);
+                if (filePath != null) {
+                    File file = new File(getExternalCacheDir(),IMAGE_CACHE_PATH+File.separator+md5Key);
+                    //说明命中了缓存
+                    WebResourceResponse webResourceResponse = null;
+                    try {
+                        webResourceResponse = new WebResourceResponse("image/*","utf-8",new FileInputStream(file));
+                        Log.i("MainActivity Cache","hit "+url);
+                        return webResourceResponse;
+                    } catch (FileNotFoundException e) {
+                        file.delete();
+                    }
+                }
+                Headers headers = Headers.of(request.getRequestHeaders());
+
+                Request customRequest = new Request.Builder().url(url).headers(headers).build();
+                Call call = okHttpClient.newCall(customRequest);
+                try {
+                    Response customResponse = call.execute();
+                    if (customResponse.isSuccessful()) {
+                        String contentType = customResponse.header("Content-Type","");
+                        //如果是图片，我们给缓存起来
+                        if (contentType.contains("image/")) {
+                            byte[] buffer = new byte[1024];
+                            int len = 0;
+                            InputStream is = customResponse.body().byteStream();
+                            File file = new File(getExternalCacheDir(),IMAGE_CACHE_PATH+File.separator+md5Key);
+                            if (file.exists()) {
+                                file.delete();
+                            }
+                            //保存图片文件
+                            file.createNewFile();
+                            FileOutputStream os = new FileOutputStream(file);
+                            while ((len = is.read(buffer)) > 0) {
+                                os.write(buffer,0,len);
+                            }
+                            os.flush();
+                            os.close();
+                            is.close();
+                            Log.i("MainActivity Cache","success "+url);
+                            putImageCachePath(md5Key);
+                            WebResourceResponse webResourceResponse = new WebResourceResponse(contentType,"",new FileInputStream(file));
+                            Map<String,String> headerMap = new HashMap<>();
+                            Set<String> headerNames = customResponse.headers().names();
+
+                            for (int i=0; i<headerNames.size(); i++) {
+                                headerMap.put(customResponse.headers().name(i),customResponse.headers().value(i));
+                            }
+                            webResourceResponse.setResponseHeaders(headerMap);
+                            return webResourceResponse;
+                        } else {
+                            WebResourceResponse webResourceResponse = new WebResourceResponse(contentType,"",customResponse.body().byteStream());
+                            Map<String,String> headerMap = new HashMap<>();
+                            Set<String> headerNames = customResponse.headers().names();
+
+                            for (int i=0; i<headerNames.size(); i++) {
+                                headerMap.put(customResponse.headers().name(i),customResponse.headers().value(i));
+                            }
+                            webResourceResponse.setResponseHeaders(headerMap);
+                            return webResourceResponse;
+                        }
+                    }
+                } catch (IOException e) {
+                    Log.i("MainActivity Cache","fail "+url);
+                    e.printStackTrace();
+                    return super.shouldInterceptRequest(view, request);
+                }
+                return super.shouldInterceptRequest(view, request);
             }
         });
 
@@ -511,6 +620,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStop() {
+        super.onStop();
+        saveImageCache();
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         handler.removeMessages(REFRESH_HEIGHT);
@@ -588,6 +703,87 @@ public class MainActivity extends AppCompatActivity {
                         Log.e("MainActivity", "error register", throwable);
                     }
                 });
+    }
+
+    public static String calculateMD5(String input) {
+        try {
+            // 创建MD5消息摘要对象
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            // 将输入字符串转换为字节数组
+            byte[] inputBytes = input.getBytes();
+            // 计算MD5哈希值
+            byte[] hashBytes = md.digest(inputBytes);
+
+            // 将字节数组转换为十六进制字符串
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hashBytes) {
+                sb.append(String.format("%02x", b));
+            }
+
+            // 返回十六进制字符串作为MD5哈希值
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    synchronized String getImageCachePath(String key) {
+        return mCacheMap.get(key);
+    }
+
+    synchronized void putImageCachePath(String key) {
+        mCacheMap.put(key, key);
+    }
+
+    void readImageCache() {
+        //创建目录
+        File fileDir = new File(getExternalCacheDir(),IMAGE_CACHE_PATH);
+        if (!fileDir.exists()) {
+            fileDir.mkdirs();
+        }
+        File file = new File(getExternalCacheDir(),IMAGE_CACHE_PATH+File.separator+IMAGE_CACHE_NAME);
+        if (file.exists()) {
+            try {
+                Gson gson = new Gson();
+                InputStream inputStream = new FileInputStream(file);
+                InputStreamReader reader = new InputStreamReader(inputStream);
+                BufferedReader bf = new BufferedReader(reader);
+                StringBuilder text = new StringBuilder();
+                String temp;
+                while ((temp = bf.readLine()) != null) {
+                    text.append(temp);
+                }
+                inputStream.close();
+                Map<String,String> dataMap = gson.fromJson(text.toString(), new TypeToken<Map<String,String>>(){}.getType());
+                mCacheMap.putAll(dataMap);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * 保存图片缓存的json
+     */
+    void saveImageCache() {
+        Gson gson = new Gson();
+        String json = gson.toJson(mCacheMap);
+        File file = new File(getExternalCacheDir(),IMAGE_CACHE_PATH+File.separator+IMAGE_CACHE_NAME);
+        try {
+            if (file.exists()) {
+                file.delete();
+            }
+            file.createNewFile();
+            OutputStream outputStream = new FileOutputStream(file);
+            OutputStreamWriter writer = new OutputStreamWriter(outputStream);
+            BufferedWriter bw = new BufferedWriter(writer);
+            bw.write(json);
+            bw.flush();
+            outputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 
