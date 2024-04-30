@@ -367,8 +367,10 @@ public class MainActivity extends AppCompatActivity {
         setUa.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                setUa.setText("");
                 String ua = getUa();
-                if (ua == null) {
+                if (ua == null || ua.isEmpty()) {
+                    setUa.setText("err");
                     Toast.makeText(MainActivity.this, "Ua设置失败", Toast.LENGTH_SHORT).show();
                 } else {
                     if (webFlag == 1) {
