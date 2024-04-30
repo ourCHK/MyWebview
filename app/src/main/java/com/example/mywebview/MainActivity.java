@@ -125,6 +125,7 @@ public class MainActivity extends AppCompatActivity {
     TextView remoteCountry;
     TextView remoteCity;
     TextView remoteRegion;
+    TextView remoteState;
     ImageView remoteRefresh;
 
     CheckBox autoRefresh;
@@ -207,6 +208,7 @@ public class MainActivity extends AppCompatActivity {
         remoteCity = findViewById(R.id.remoteCity);
         remoteRegion = findViewById(R.id.remoteRegion);
         remoteRefresh = findViewById(R.id.refreshRemote);
+        remoteState = findViewById(R.id.remoteState);
         autoRefresh = findViewById(R.id.autoRefresh);
 
         WebSettings settings = webview.getSettings();
@@ -480,6 +482,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     public void requestIP() {
+        remoteState.setText("");
         OkHttpClient okHttpClient = new OkHttpClient();
         final Request request = new Request.Builder().url("http://lumtest.com/myip.json").get().build();
         Call call = okHttpClient.newCall(request);
@@ -489,6 +492,7 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        remoteState.setText("err");
                         Toast.makeText(MainActivity.this, "lumtest request fail!", Toast.LENGTH_SHORT).show();
                     }
                 });
@@ -503,6 +507,7 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        remoteState.setText("Ok");
                         remoteIp.setText(data.getIp());
                         remoteCountry.setText(data.getCountry());
                         remoteCity.setText(data.getGeo().getCity());
