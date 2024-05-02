@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.RectF;
-import android.net.http.SslError;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -20,17 +19,12 @@ import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.InputMethodManager;
-import android.webkit.MimeTypeMap;
-import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
-import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -46,13 +40,10 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -68,8 +59,7 @@ import java.util.Locale;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
-import kotlin.Pair;
+
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Headers;
@@ -77,7 +67,6 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-import okhttp3.internal.http2.Header;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoRuntime;
 import org.mozilla.geckoview.GeckoSession;
@@ -95,6 +84,8 @@ public class MainActivity extends AppCompatActivity {
     public final static String IMAGE_CACHE_PATH = "ImageCache";
 
     public final static String IMAGE_CACHE_NAME = "imageCache.json";
+
+    private final static String IMAGE_PLACE_HOLDER_NAME = "image_place_holder.png";
 
     WebView webview;
 
@@ -154,6 +145,13 @@ public class MainActivity extends AppCompatActivity {
 
     HashMap<String,String> mCacheMap = new HashMap<>();
 
+    //存放拦截图片域名的列表
+    List<String> imageDomainList;
+
+    //存放图片拦截关键字的列表
+    List<String> imageKeywordList;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -166,6 +164,8 @@ public class MainActivity extends AppCompatActivity {
 
     void dataInit() {
         readImageCache();
+        readConfigInterceptImageDomain();
+        readConfigInterceptImageKeyword();
         handler = new Handler(getMainLooper()) {
             @Override
             public void handleMessage(@NonNull Message msg) {
@@ -233,10 +233,15 @@ public class MainActivity extends AppCompatActivity {
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
 
                 String url = request.getUrl().toString();
-                if (!url.endsWith(".png") && !url.endsWith(".jpg") && !url.endsWith(".jpeg")) {
-                    return super.shouldInterceptRequest(view, request);
+                if (!checkInterceptImageDomain(url)) {
+                    return super.shouldInterceptRequest(view,request);
                 }
-                Log.i("MainActivity Cache","start "+url);
+
+//                String url = request.getUrl().toString();
+//                if (!url.endsWith(".png") && !url.endsWith(".jpg") && !url.endsWith(".jpeg")) {
+//                    return super.shouldInterceptRequest(view, request);
+//                }
+//                Log.i("MainActivity Cache","start "+url);
                 String md5Key = calculateMD5(url);
                 if (md5Key == null) {
                     return super.shouldInterceptRequest(view,request);
@@ -247,7 +252,8 @@ public class MainActivity extends AppCompatActivity {
                     //说明命中了缓存
                     WebResourceResponse webResourceResponse = null;
                     try {
-                        webResourceResponse = new WebResourceResponse("image/*","utf-8",new FileInputStream(file));
+                        String imagePlaceHolderPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/"+ IMAGE_PLACE_HOLDER_NAME;
+                        webResourceResponse = new WebResourceResponse("image/*","utf-8",new FileInputStream(imagePlaceHolderPath));
                         Log.i("MainActivity Cache","hit "+url);
                         return webResourceResponse;
                     } catch (FileNotFoundException e) {
@@ -282,7 +288,8 @@ public class MainActivity extends AppCompatActivity {
                             is.close();
                             Log.i("MainActivity Cache","success "+url);
                             putImageCachePath(md5Key);
-                            WebResourceResponse webResourceResponse = new WebResourceResponse(contentType,"",new FileInputStream(file));
+                            String imagePlaceHolderPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/"+ IMAGE_PLACE_HOLDER_NAME;
+                            WebResourceResponse webResourceResponse = new WebResourceResponse(contentType,"",new FileInputStream(imagePlaceHolderPath));
                             Map<String,String> headerMap = new HashMap<>();
                             Set<String> headerNames = customResponse.headers().names();
 
@@ -554,22 +561,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public String getUa() {
-        File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath()+"/ua.txt");
-        try {
-            InputStream inputStream = new FileInputStream(file);
-            InputStreamReader reader = new InputStreamReader(inputStream);
-            BufferedReader bf = new BufferedReader(reader);
-            StringBuilder text = new StringBuilder();
-            String temp;
-            while ((temp = bf.readLine()) != null) {
-                text.append(temp);
-            }
-            inputStream.close();
-            return text.toString();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
+        return readFileString(Environment.getExternalStorageDirectory().getAbsolutePath()+"/ua.txt");
     }
 
     void initGeckoView() {
@@ -791,6 +783,89 @@ public class MainActivity extends AppCompatActivity {
             outputStream.close();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * 检查是否拦截url
+     * @param url
+     * @return
+     */
+    boolean checkInterceptImageDomain(String url) {
+        if (imageDomainList == null || imageDomainList.isEmpty()) {
+            return false;
+        }
+        for (String imageDomain: imageDomainList) {
+            if (url.startsWith(imageDomain) && checkPairImageKeyword(url)) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    /**
+     * 检查是否匹配关键字
+     * @param url
+     * @return
+     */
+    boolean checkPairImageKeyword(String url) {
+        if (imageKeywordList == null || imageKeywordList.isEmpty()) {
+            return true;
+        }
+        for (String imageKeyword: imageKeywordList) {
+            if (url.contains(imageKeyword)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 读取配置的拦截域名图片的文件
+     */
+    void readConfigInterceptImageDomain() {
+        String path = Environment.getExternalStorageDirectory().getAbsolutePath()+"/image_domain.json";
+        String configInterceptString = readFileString(path);
+
+        Gson gson = new Gson();
+        try {
+            imageDomainList = gson.fromJson(configInterceptString,new TypeToken<List<String>>(){}.getType());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 读取配置的拦截域名图片的关键字
+     */
+    void readConfigInterceptImageKeyword() {
+        String path = Environment.getExternalStorageDirectory().getAbsolutePath()+"/image_path_keyword.json";
+        String configInterceptString = readFileString(path);
+
+        Gson gson = new Gson();
+        try {
+            imageKeywordList = gson.fromJson(configInterceptString,new TypeToken<List<String>>(){}.getType());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public String readFileString(String path) {
+        File file = new File(path);
+        try {
+            InputStream inputStream = new FileInputStream(file);
+            InputStreamReader reader = new InputStreamReader(inputStream);
+            BufferedReader bf = new BufferedReader(reader);
+            StringBuilder text = new StringBuilder();
+            String temp;
+            while ((temp = bf.readLine()) != null) {
+                text.append(temp);
+            }
+            inputStream.close();
+            return text.toString();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 
