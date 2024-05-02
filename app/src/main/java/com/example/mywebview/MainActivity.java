@@ -128,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
     TextView remoteState;
     ImageView remoteRefresh;
 
-    CheckBox autoRefresh;
+    ImageView stickTop;
 
     GeckoSession session = new GeckoSession();
     GeckoRuntime runtime;
@@ -209,7 +209,8 @@ public class MainActivity extends AppCompatActivity {
         remoteRegion = findViewById(R.id.remoteRegion);
         remoteRefresh = findViewById(R.id.refreshRemote);
         remoteState = findViewById(R.id.remoteState);
-        autoRefresh = findViewById(R.id.autoRefresh);
+
+        stickTop = findViewById(R.id.stickTop);
 
         WebSettings settings = webview.getSettings();
         // 如果访问的页面中有JavaScript，则WebView必须设置支持JavaScript，否则显示空白页面
@@ -367,10 +368,10 @@ public class MainActivity extends AppCompatActivity {
         setUa.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                setUa.setText("");
+                uaFlag.setText("");
                 String ua = getUa();
                 if (ua == null || ua.isEmpty()) {
-                    setUa.setText("err");
+                    uaFlag.setText("err");
                     Toast.makeText(MainActivity.this, "Ua设置失败", Toast.LENGTH_SHORT).show();
                 } else {
                     if (webFlag == 1) {
@@ -419,13 +420,13 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        autoRefresh.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+        stickTop.setOnClickListener(new OnClickListener() {
             @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    handler.sendEmptyMessage(REFRESH_HEIGHT);
+            public void onClick(View v) {
+                if (webFlag == 1) {
+                    webview.scrollTo(0,0);
                 } else {
-                    handler.sendEmptyMessage(REFRESH_CANCEL);
+                    geckoView.getPanZoomController().scrollToTop();
                 }
             }
         });
