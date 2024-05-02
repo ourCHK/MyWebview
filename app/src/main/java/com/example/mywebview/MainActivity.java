@@ -232,10 +232,10 @@ public class MainActivity extends AppCompatActivity {
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
 
                 String url = request.getUrl().toString();
-                Log.i("MainActivity Cache","start "+url);
-                if (url.endsWith(".css") || url.endsWith(".js") || !url.startsWith("http")) {
+                if (!url.endsWith(".png") && !url.endsWith(".jpg") && !url.endsWith(".jpeg")) {
                     return super.shouldInterceptRequest(view, request);
                 }
+                Log.i("MainActivity Cache","start "+url);
                 String md5Key = calculateMD5(url);
                 if (md5Key == null) {
                     return super.shouldInterceptRequest(view,request);
