@@ -112,9 +112,9 @@ public class MainActivity extends AppCompatActivity {
     TextView forward;
 
     TextView remoteState;
-    ImageView remoteRefresh;
+    TextView remoteRefresh;
 
-    ImageView stickTop;
+    TextView stickTop;
 
     GeckoSession session = new GeckoSession();
     GeckoRuntime runtime;

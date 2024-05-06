@@ -6,21 +6,21 @@
     android:orientation="vertical"
     tools:context=".MainActivity">
 
-    <EditText
-        android:id="@+id/input"
-        android:lines="1"
-        android:singleLine="true"
-        android:maxLines="1"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
-
     <LinearLayout
         android:gravity="center"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
+        <EditText
+            android:id="@+id/input"
+            android:lines="1"
+            android:singleLine="true"
+            android:maxLines="1"
+            android:layout_width="0dp"
+            android:layout_weight="2"
+            android:layout_height="wrap_content"/>
         <TextView
             android:id="@+id/clearUrl"
-            android:text="清除url"
+            android:text="A"
             android:gravity="center"
             android:padding="0dp"
             android:layout_width="0dp"
@@ -28,7 +28,7 @@
             android:layout_height="wrap_content"/>
         <TextView
             android:id="@+id/refresh"
-            android:text="刷新"
+            android:text="B"
             android:gravity="center"
             android:padding="0dp"
             android:layout_width="0dp"
@@ -36,7 +36,7 @@
             android:layout_height="wrap_content"/>
         <TextView
             android:id="@+id/back"
-            android:text="back"
+            android:text="C"
             android:gravity="center"
             android:padding="0dp"
             android:layout_width="0dp"
@@ -44,7 +44,7 @@
             android:layout_height="wrap_content"/>
         <TextView
             android:id="@+id/forward"
-            android:text="forward"
+            android:text="D"
             android:gravity="center"
             android:padding="0dp"
             android:layout_width="0dp"
@@ -52,7 +52,7 @@
             android:layout_height="wrap_content"/>
         <TextView
             android:id="@+id/enter"
-            android:text="回车"
+            android:text="E"
             android:gravity="center"
             android:padding="0dp"
             android:layout_width="0dp"
@@ -61,27 +61,21 @@
 
         <TextView
             android:id="@+id/setUa"
-            android:text="UA"
+            android:text="F"
             android:gravity="center"
             android:padding="0dp"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"/>
 
-        <ImageView
+        <TextView
             android:id="@+id/refreshRemote"
-            android:layout_height="match_parent"
-            android:layout_width="wrap_content"
-            android:src="@drawable/icon_refresh"
-            />
-
-
-
-    </LinearLayout>
-    <LinearLayout
-        android:layout_gravity="center"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+            android:text="G"
+            android:gravity="center"
+            android:padding="0dp"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"/>
 
         <TextView
             android:id="@+id/uaFlag"
@@ -127,11 +121,11 @@
 
         <TextView
             android:id="@+id/changeWebType"
-            android:text="内核切换"
+            android:text="H"
             android:gravity="center"
             android:padding="0dp"
             android:layout_width="0dp"
-            android:layout_weight="2"
+            android:layout_weight="1"
             android:layout_height="wrap_content"/>
         <TextView
             android:id="@+id/webTypeFlag"
@@ -140,12 +134,15 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"/>
-        <ImageView
+
+        <TextView
             android:id="@+id/stickTop"
-            android:layout_height="match_parent"
-            android:layout_width="wrap_content"
-            android:src="@drawable/icon_stick_top"
-            />
+            android:text="I"
+            android:gravity="center"
+            android:padding="0dp"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"/>
     </LinearLayout>
     <WebView
         android:id="@+id/webview"
