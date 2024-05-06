@@ -89,16 +89,11 @@ public class MainActivity extends AppCompatActivity {
 
     WebView webview;
 
+    com.tencent.smtt.sdk.WebView qbWebview;
+
     GeckoView geckoView;
 
     EditText input;
-
-    TextView ip;
-    TextView time;
-    TextView locale;
-    TextView language;
-    TextView osVersion;
-    TextView appVersion;
 
     TextView progress;
     TextView verticalProgress;
@@ -110,12 +105,12 @@ public class MainActivity extends AppCompatActivity {
     TextView uaFlag;
 
     TextView webType;
-    TextView back;
 
-    TextView remoteIp;
-    TextView remoteCountry;
-    TextView remoteCity;
-    TextView remoteRegion;
+    TextView changeWebType;
+    TextView webTypFlag;
+    TextView back;
+    TextView forward;
+
     TextView remoteState;
     ImageView remoteRefresh;
 
@@ -134,6 +129,8 @@ public class MainActivity extends AppCompatActivity {
     int webFlag = 1;
 
     boolean initGeckoView = false;
+
+    boolean initQbsWebview = false;
 
     int REFRESH_HEIGHT = 0x01;
 
@@ -186,32 +183,156 @@ public class MainActivity extends AppCompatActivity {
     void initView() {
         progress = findViewById(R.id.progress);
         geckoView = findViewById(R.id.geckoView);
+        qbWebview = findViewById(R.id.qbsWebview);
         webview = findViewById(R.id.webview);
-        time  = findViewById(R.id.time);
-        locale = findViewById(R.id.locale);
-        language = findViewById(R.id.language);
-        osVersion = findViewById(R.id.osVersion);
-        appVersion = findViewById(R.id.appVersion);
+        initWebview();
         verticalProgress = findViewById(R.id.verticalProgress);
         input = findViewById(R.id.input);
 
         refresh = findViewById(R.id.refresh);
         clearUrl = findViewById(R.id.clearUrl);
         back = findViewById(R.id.back);
+        forward = findViewById(R.id.forward);
         enter = findViewById(R.id.enter);
         setUa = findViewById(R.id.setUa);
         uaFlag = findViewById(R.id.uaFlag);
         webType = findViewById(R.id.webType);
+        changeWebType = findViewById(R.id.changeWebType);
+        webTypFlag = findViewById(R.id.webTypeFlag);
 
-        remoteIp = findViewById(R.id.remoteIp);
-        remoteCountry = findViewById(R.id.remoteCountry);
-        remoteCity = findViewById(R.id.remoteCity);
-        remoteRegion = findViewById(R.id.remoteRegion);
         remoteRefresh = findViewById(R.id.refreshRemote);
         remoteState = findViewById(R.id.remoteState);
 
         stickTop = findViewById(R.id.stickTop);
+        input.setFilters(new InputFilter[]{new InputFilter() {
+            @Override
+            public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
+                return source.toString().replace("\n", "");
+            }
+        }});
 
+        back.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (webFlag == 1) {
+                    webview.goBack();
+                } else if (webFlag == 2){
+                    session.goBack();
+                } else if (webFlag == 3) {
+                    qbWebview.goBack();
+                }
+            }
+        });
+
+        forward.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (webFlag == 1) {
+                    webview.goForward();
+                } else if (webFlag == 2){
+                    session.goForward();
+                } else if (webFlag == 3) {
+                    qbWebview.goForward();
+                }
+            }
+        });
+
+        //查询按钮
+        enter.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (input.getText().toString().isEmpty()) {
+                    Toast.makeText(MainActivity.this, "输入内容不能为空", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                hideKeyboard(input);
+                if (webFlag == 1) {
+                    webview.loadUrl(input.getText().toString());
+                } else if (webFlag == 2) {
+                    session.loadUri(input.getText().toString());
+                } else if (webFlag == 3) {
+                    qbWebview.loadUrl(input.getText().toString());
+                }
+            }
+        });
+        //设置ua按钮
+        setUa.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                uaFlag.setText("");
+                String ua = getUa();
+                if (ua == null || ua.isEmpty()) {
+                    uaFlag.setText("2");
+                    Toast.makeText(MainActivity.this, "Ua设置失败", Toast.LENGTH_SHORT).show();
+                } else {
+                    if (webFlag == 1) {
+                        webview.getSettings().setUserAgentString(ua);
+                    } else if (webFlag == 2){
+                        session.getSettings().setUserAgentOverride(ua);
+                    } else if (webFlag == 3) {
+                        qbWebview.getSettings().setUserAgent(ua);
+                    }
+                    Toast.makeText(MainActivity.this, "Ua设置成功", Toast.LENGTH_SHORT).show();
+                    uaFlag.setText("1");
+                }
+            }
+        });
+
+        changeWebType.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                webTypFlag.setText("");
+                changeWebType();
+            }
+        });
+
+        refresh.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (webFlag == 1) {
+                    webview.reload();
+                } else if (webFlag == 2) {
+                    session.reload();
+                } else if (webFlag == 3) {
+                    qbWebview.reload();
+                }
+            }
+        });
+
+
+
+        clearUrl.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                input.setText("");
+            }
+        });
+
+
+        remoteRefresh.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                requestIP();
+            }
+        });
+
+        stickTop.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (webFlag == 1) {
+                    webview.scrollTo(0,0);
+                } else if (webFlag == 2) {
+                    geckoView.getPanZoomController().scrollToTop();
+                } else if (webFlag == 3) {
+                    qbWebview.flingScroll(0,0);
+                }
+            }
+        });
+
+    }
+
+
+    void initWebview() {
         WebSettings settings = webview.getSettings();
         // 如果访问的页面中有JavaScript，则WebView必须设置支持JavaScript，否则显示空白页面
         settings.setJavaScriptEnabled(true);
@@ -237,11 +358,6 @@ public class MainActivity extends AppCompatActivity {
                     return super.shouldInterceptRequest(view,request);
                 }
 
-//                String url = request.getUrl().toString();
-//                if (!url.endsWith(".png") && !url.endsWith(".jpg") && !url.endsWith(".jpeg")) {
-//                    return super.shouldInterceptRequest(view, request);
-//                }
-//                Log.i("MainActivity Cache","start "+url);
                 String md5Key = calculateMD5(url);
                 if (md5Key == null) {
                     return super.shouldInterceptRequest(view,request);
@@ -336,120 +452,133 @@ public class MainActivity extends AppCompatActivity {
                 progress.setText(String.valueOf(newProgress));
             }
         });
+    }
 
-        input.setFilters(new InputFilter[]{new InputFilter() {
-            @Override
-            public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
-                return source.toString().replace("\n", "");
-            }
-        }});
+    void initQbsWebview() {
+        if (initQbsWebview) {
+            //防止多次初始化
+            return;
+        }
+        initQbsWebview = true;
+        com.tencent.smtt.sdk.WebSettings settings = qbWebview.getSettings();
+        // 如果访问的页面中有JavaScript，则WebView必须设置支持JavaScript，否则显示空白页面
+        settings.setJavaScriptEnabled(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        }
+        settings.setAllowContentAccess(true);
+        settings.setDomStorageEnabled(true);
+        settings.setDatabaseEnabled(true);
 
-        back.setOnClickListener(new View.OnClickListener() {
+        qbWebview.setWebViewClient(new com.tencent.smtt.sdk.WebViewClient() {
             @Override
-            public void onClick(View v) {
-                if (webFlag == 1) {
-                    webview.goBack();
-                } else {
-                    session.goBack();
-                }
-            }
-        });
+            public void onPageStarted(com.tencent.smtt.sdk.WebView webView, String url, Bitmap bitmap) {
+                super.onPageStarted(webView, url, bitmap);
+                input.setText(url);
 
-        //查询按钮
-        enter.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (input.getText().toString().isEmpty()) {
-                    Toast.makeText(MainActivity.this, "输入内容不能为空", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                hideKeyboard(input);
-                if (webFlag == 1) {
-                    webview.loadUrl(input.getText().toString());
-                } else {
-                    session.loadUri(input.getText().toString());
-                }
             }
-        });
-        //设置ua按钮
-        setUa.setOnClickListener(new View.OnClickListener() {
+
             @Override
-            public void onClick(View v) {
-                uaFlag.setText("");
-                String ua = getUa();
-                if (ua == null || ua.isEmpty()) {
-                    uaFlag.setText("err");
-                    Toast.makeText(MainActivity.this, "Ua设置失败", Toast.LENGTH_SHORT).show();
-                } else {
-                    if (webFlag == 1) {
-                        settings.setUserAgentString(ua);
-                    } else {
-                        session.getSettings().setUserAgentOverride(ua);
+            public com.tencent.smtt.export.external.interfaces.WebResourceResponse shouldInterceptRequest(com.tencent.smtt.sdk.WebView view, com.tencent.smtt.export.external.interfaces.WebResourceRequest request) {
+                String url = request.getUrl().toString();
+                if (!checkInterceptImageDomain(url)) {
+                    return super.shouldInterceptRequest(view,request);
+                }
+
+                String md5Key = calculateMD5(url);
+                if (md5Key == null) {
+                    return super.shouldInterceptRequest(view,request);
+                }
+                String filePath = getImageCachePath(md5Key);
+                if (filePath != null) {
+                    File file = new File(getExternalCacheDir(),IMAGE_CACHE_PATH+File.separator+md5Key);
+                    //说明命中了缓存
+                    com.tencent.smtt.export.external.interfaces.WebResourceResponse webResourceResponse = null;
+                    try {
+                        String imagePlaceHolderPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/"+ IMAGE_PLACE_HOLDER_NAME;
+                        webResourceResponse = new com.tencent.smtt.export.external.interfaces.WebResourceResponse("image/*","utf-8",new FileInputStream(imagePlaceHolderPath));
+                        Log.i("MainActivity Cache","hit "+url);
+                        return webResourceResponse;
+                    } catch (FileNotFoundException e) {
+                        file.delete();
                     }
-                    Toast.makeText(MainActivity.this, "Ua设置成功", Toast.LENGTH_SHORT).show();
-                    uaFlag.setText("ok");
                 }
-            }
-        });
+                Headers headers = Headers.of(request.getRequestHeaders());
 
-        webType.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                changeWebType();
-            }
-        });
+                Request customRequest = new Request.Builder().url(url).headers(headers).build();
+                Call call = okHttpClient.newCall(customRequest);
+                try {
+                    Response customResponse = call.execute();
+                    if (customResponse.isSuccessful()) {
+                        String contentType = customResponse.header("Content-Type","");
+                        //如果是图片，我们给缓存起来
+                        if (contentType.contains("image/")) {
+                            byte[] buffer = new byte[1024];
+                            int len = 0;
+                            InputStream is = customResponse.body().byteStream();
+                            File file = new File(getExternalCacheDir(),IMAGE_CACHE_PATH+File.separator+md5Key);
+                            if (file.exists()) {
+                                file.delete();
+                            }
+                            //保存图片文件
+                            file.createNewFile();
+                            FileOutputStream os = new FileOutputStream(file);
+                            while ((len = is.read(buffer)) > 0) {
+                                os.write(buffer,0,len);
+                            }
+                            os.flush();
+                            os.close();
+                            is.close();
+                            Log.i("MainActivity Cache","success "+url);
+                            putImageCachePath(md5Key);
+                            String imagePlaceHolderPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/"+ IMAGE_PLACE_HOLDER_NAME;
+                            com.tencent.smtt.export.external.interfaces.WebResourceResponse webResourceResponse = new com.tencent.smtt.export.external.interfaces.WebResourceResponse(contentType,"",new FileInputStream(imagePlaceHolderPath));
+                            Map<String,String> headerMap = new HashMap<>();
+                            Set<String> headerNames = customResponse.headers().names();
 
-        refresh.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (webFlag == 1) {
-                    webview.reload();
-                } else {
-                    session.reload();
+                            for (int i=0; i<headerNames.size(); i++) {
+                                headerMap.put(customResponse.headers().name(i),customResponse.headers().value(i));
+                            }
+                            webResourceResponse.setResponseHeaders(headerMap);
+                            return webResourceResponse;
+                        } else {
+                            com.tencent.smtt.export.external.interfaces.WebResourceResponse webResourceResponse = new com.tencent.smtt.export.external.interfaces.WebResourceResponse(contentType,"",customResponse.body().byteStream());
+                            Map<String,String> headerMap = new HashMap<>();
+                            Set<String> headerNames = customResponse.headers().names();
+
+                            for (int i=0; i<headerNames.size(); i++) {
+                                headerMap.put(customResponse.headers().name(i),customResponse.headers().value(i));
+                            }
+                            webResourceResponse.setResponseHeaders(headerMap);
+                            return webResourceResponse;
+                        }
+                    }
+                } catch (IOException e) {
+                    Log.i("MainActivity Cache","fail "+url);
+                    e.printStackTrace();
+                    return super.shouldInterceptRequest(view, request);
                 }
+                return super.shouldInterceptRequest(view, request);
             }
         });
 
-
-
-        clearUrl.setOnClickListener(new View.OnClickListener() {
+        qbWebview.setOnScrollChangeListener(new View.OnScrollChangeListener() {
             @Override
-            public void onClick(View v) {
-                input.setText("");
+            public void onScrollChange(View v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
+                float contentHeight = qbWebview.getContentHeight() * qbWebview.getScale();
+                float webviewHeight = qbWebview.getHeight();
+                float verticalProgress = scrollY / (contentHeight-webviewHeight);
+                MainActivity.this.verticalProgress.setText(String.valueOf((int)(round(verticalProgress,2)* 100)));
             }
         });
 
-
-        remoteRefresh.setOnClickListener(new View.OnClickListener() {
+        qbWebview.setWebChromeClient(new com.tencent.smtt.sdk.WebChromeClient() {
             @Override
-            public void onClick(View v) {
-                requestIP();
+            public void onProgressChanged(com.tencent.smtt.sdk.WebView view, int newProgress) {
+                super.onProgressChanged(view, newProgress);
+                progress.setText(String.valueOf(newProgress));
             }
         });
-
-        stickTop.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (webFlag == 1) {
-                    webview.scrollTo(0,0);
-                } else {
-                    geckoView.getPanZoomController().scrollToTop();
-                }
-            }
-        });
-
-        //获取ip地址
-        ip = findViewById(R.id.ip);
-        ip.setText(getWiFiIPAddress(this));
-        osVersion.setText(Build.VERSION.RELEASE);
-        appVersion.setText(getAppVersion());
-
-        Locale systemLocale = getResources().getConfiguration().locale;
-        language.setText(systemLocale.getLanguage());
-        locale.setText(systemLocale.getCountry());
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-        String currentDateAndTime = sdf.format(new Date());
-        time.setText(currentDateAndTime);
 
     }
 
@@ -502,7 +631,7 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        remoteState.setText("err");
+                        remoteState.setText("2");
                         Toast.makeText(MainActivity.this, "lumtest request fail!", Toast.LENGTH_SHORT).show();
                     }
                 });
@@ -517,11 +646,7 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        remoteState.setText("Ok");
-                        remoteIp.setText(data.getIp());
-                        remoteCountry.setText(data.getCountry());
-                        remoteCity.setText(data.getGeo().getCity());
-                        remoteRegion.setText(data.getGeo().getRegion());
+                        remoteState.setText("1");
                     }
                 });
             }
@@ -639,16 +764,30 @@ public class MainActivity extends AppCompatActivity {
             //说明当前是webview,需要切换到GeckoView
             webFlag = 2;
             webType.setText(String.valueOf(webFlag));
-            webview.setVisibility(View.GONE);
+
             geckoView.setVisibility(View.VISIBLE);
+            webview.setVisibility(View.GONE);
+            qbWebview.setVisibility(View.GONE);
             initGeckoView();
-        } else {
-            //说明是GeckoView
+        } else if (webFlag == 2){
+            //说明是当前是GeckoView
+            webFlag = 3;
+            webType.setText(String.valueOf(webFlag));
+
+            qbWebview.setVisibility(View.VISIBLE);
+            webview.setVisibility(View.GONE);
+            geckoView.setVisibility(View.GONE);
+            initQbsWebview();
+        } else if (webFlag == 3) {
+            //说明是当前是QbsWebview
             webFlag = 1;
             webType.setText(String.valueOf(webFlag));
+
             webview.setVisibility(View.VISIBLE);
+            qbWebview.setVisibility(View.GONE);
             geckoView.setVisibility(View.GONE);
         }
+        webTypFlag.setText("1");
     }
 
     void writeIpJson(String json) {

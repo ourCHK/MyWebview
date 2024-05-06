@@ -6,64 +6,6 @@
     android:orientation="vertical"
     tools:context=".MainActivity">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <TextView
-            android:id="@+id/ip"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:textSize="12sp" />
-        <TextView
-            android:id="@+id/time"
-            android:gravity="center"
-            android:layout_width="0dp"
-            android:layout_weight="2"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:textSize="12sp" />
-        <TextView
-            android:id="@+id/locale"
-            android:gravity="center"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:textSize="12sp" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <TextView
-            android:id="@+id/language"
-            android:gravity="center"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:textSize="12sp" />
-        <TextView
-            android:id="@+id/osVersion"
-            android:gravity="center"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:textSize="12sp" />
-        <TextView
-            android:id="@+id/appVersion"
-            android:gravity="center"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:textSize="12sp" />
-    </LinearLayout>
-
     <EditText
         android:id="@+id/input"
         android:lines="1"
@@ -101,6 +43,14 @@
             android:layout_weight="1"
             android:layout_height="wrap_content"/>
         <TextView
+            android:id="@+id/forward"
+            android:text="forward"
+            android:gravity="center"
+            android:padding="0dp"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"/>
+        <TextView
             android:id="@+id/enter"
             android:text="回车"
             android:gravity="center"
@@ -108,6 +58,48 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"/>
+
+        <TextView
+            android:id="@+id/setUa"
+            android:text="UA"
+            android:gravity="center"
+            android:padding="0dp"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"/>
+
+        <ImageView
+            android:id="@+id/refreshRemote"
+            android:layout_height="match_parent"
+            android:layout_width="wrap_content"
+            android:src="@drawable/icon_refresh"
+            />
+
+
+
+    </LinearLayout>
+    <LinearLayout
+        android:layout_gravity="center"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:id="@+id/uaFlag"
+            android:text=""
+            android:gravity="center"
+            android:padding="0dp"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"/>
+
+        <TextView
+            android:id="@+id/remoteState"
+            android:gravity="center"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:textSize="12sp"
+            android:layout_height="wrap_content"/>
+
         <TextView
             android:id="@+id/progress"
             android:text="0"
@@ -123,6 +115,7 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"/>
+
         <TextView
             android:id="@+id/webType"
             android:text="1"
@@ -131,74 +124,22 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"/>
+
         <TextView
-            android:id="@+id/uaFlag"
-            android:text=""
+            android:id="@+id/changeWebType"
+            android:text="内核切换"
             android:gravity="center"
             android:padding="0dp"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"/>
-        <TextView
-            android:id="@+id/setUa"
-            android:text="UA"
-            android:gravity="center"
-            android:padding="0dp"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"/>
-    </LinearLayout>
-    <LinearLayout
-        android:layout_gravity="center"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <TextView
-            android:id="@+id/remoteIp"
             android:layout_width="0dp"
             android:layout_weight="2"
-            android:gravity="center"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:textSize="12sp" />
-        <TextView
-            android:id="@+id/remoteCountry"
-            android:gravity="center"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:textSize="12sp" />
-        <TextView
-            android:id="@+id/remoteCity"
-            android:gravity="center"
-            android:layout_width="0dp"
-            android:layout_weight="1.5"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:textSize="12sp" />
-        <TextView
-            android:id="@+id/remoteRegion"
-            android:gravity="center"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:textSize="12sp" />
-
-        <TextView
-            android:id="@+id/remoteState"
-            android:gravity="center"
-            android:layout_weight="1"
-            android:layout_width="0dp"
-            android:textSize="12sp"
             android:layout_height="wrap_content"/>
-
-        <ImageView
-            android:id="@+id/refreshRemote"
-            android:layout_height="match_parent"
-            android:layout_width="wrap_content"
-            android:src="@drawable/icon_refresh"
-            />
-
+        <TextView
+            android:id="@+id/webTypeFlag"
+            android:gravity="center"
+            android:padding="0dp"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"/>
         <ImageView
             android:id="@+id/stickTop"
             android:layout_height="match_parent"
@@ -211,6 +152,13 @@
         android:layout_weight="1"
         android:layout_width="match_parent"
         android:layout_height="0dp"/>
+    <com.tencent.smtt.sdk.WebView
+        android:id="@+id/qbsWebview"
+        android:layout_weight="1"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        />
     <org.mozilla.geckoview.GeckoView
         android:id="@+id/geckoView"
         android:visibility="gone"
