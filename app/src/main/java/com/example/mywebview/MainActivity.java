@@ -6,12 +6,14 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.RectF;
+import android.net.TrafficStats;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.os.Process;
 import android.text.InputFilter;
 import android.text.Spanned;
 import android.text.format.Formatter;
@@ -136,6 +138,11 @@ public class MainActivity extends AppCompatActivity {
 
     int REFRESH_CANCEL = 0x02;
 
+    /**
+     * 刷新流量
+     */
+    int REFRESH_TRAFFIC = 0x03;
+
     Handler handler;
 
     OkHttpClient okHttpClient = new OkHttpClient();
@@ -147,6 +154,8 @@ public class MainActivity extends AppCompatActivity {
 
     //存放图片拦截关键字的列表
     List<String> imageKeywordList;
+
+    long startTraffic = 0;
 
 
     @Override
@@ -172,11 +181,23 @@ public class MainActivity extends AppCompatActivity {
                     }
                 } else if (msg.what == REFRESH_CANCEL) {
                     handler.removeMessages(REFRESH_HEIGHT);
+                } else if (msg.what == REFRESH_TRAFFIC) {
+                    startTraffics();
                 }
             }
         };
+        startTraffics();
     }
 
+
+    void startTraffics() {
+        if (startTraffic == 0) {
+            startTraffic = TrafficStats.getUidRxBytes(Process.myUid()) + TrafficStats.getUidTxBytes(Process.myUid());
+        }
+        long usage = TrafficStats.getUidRxBytes(Process.myUid()) + TrafficStats.getUidTxBytes(Process.myUid()) - startTraffic;
+        Log.i(MainActivity.class.getSimpleName(), "usage:"+(usage/1024/8));
+        handler.sendEmptyMessageDelayed(REFRESH_TRAFFIC, 3000);
+    }
 
 
     @SuppressLint({"SetJavaScriptEnabled", "SetTextI18n"})
