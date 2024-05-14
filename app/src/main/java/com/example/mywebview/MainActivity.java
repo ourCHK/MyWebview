@@ -118,6 +118,8 @@ public class MainActivity extends AppCompatActivity {
 
     TextView stickTop;
 
+    TextView traffic;
+
     GeckoSession session = new GeckoSession();
     GeckoRuntime runtime;
 
@@ -194,8 +196,11 @@ public class MainActivity extends AppCompatActivity {
         if (startTraffic == 0) {
             startTraffic = TrafficStats.getUidRxBytes(Process.myUid()) + TrafficStats.getUidTxBytes(Process.myUid());
         }
-        long usage = TrafficStats.getUidRxBytes(Process.myUid()) + TrafficStats.getUidTxBytes(Process.myUid()) - startTraffic;
-        Log.i(MainActivity.class.getSimpleName(), "usage:"+(usage/1024/8));
+        long usage = (TrafficStats.getUidRxBytes(Process.myUid()) + TrafficStats.getUidTxBytes(Process.myUid()) - startTraffic)/1024/1024;
+        Log.i(MainActivity.class.getSimpleName(), "usage:"+usage);
+        if (usage > 1) {
+            traffic.setText(usage+"M");
+        }
         handler.sendEmptyMessageDelayed(REFRESH_TRAFFIC, 3000);
     }
 
@@ -225,6 +230,7 @@ public class MainActivity extends AppCompatActivity {
         remoteState = findViewById(R.id.remoteState);
 
         stickTop = findViewById(R.id.stickTop);
+        traffic = findViewById(R.id.traffic);
         input.setFilters(new InputFilter[]{new InputFilter() {
             @Override
             public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
