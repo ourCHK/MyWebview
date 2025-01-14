@@ -24,9 +24,10 @@ jobs:
       with:
         # Gradle command line arguments (supports multi-line input)
         arguments: assembleRelease
+    - run: pwd
     - uses: actions/upload-artifact@v4.6.0
       with:
         name: ArtifactApk
-        path: path/*.apk
+        path: path/app/build/outputs/apk/release/*.apk
         
     
