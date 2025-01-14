@@ -25,9 +25,29 @@ jobs:
         # Gradle command line arguments (supports multi-line input)
         arguments: assembleDebug
     - run: pwd
-    - uses: actions/upload-artifact@v4.6.0
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        name: ArtifactApk
-        path: app/build/outputs/apk/debug/*.apk
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: app/build/outputs/apk/debug/app-debug.apk
+        asset_name: app-debug.apk
+        asset_content_type: application/vnd.android.package-archive
+        
+    # - uses: actions/upload-artifact@v4.6.0
+    #   with:
+    #     name: ArtifactApk
+    #     path: app/build/outputs/apk/debug/*.apk
         
     
