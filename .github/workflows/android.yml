@@ -24,3 +24,8 @@ jobs:
       with:
         # Gradle command line arguments (supports multi-line input)
         arguments: assembleRelease
+    - uses: actions/upload-artifact@4.6.0
+      with:
+        name: "*.apk"
+        
+    
