@@ -23,7 +23,7 @@ jobs:
       uses: gradle/gradle-build-action@v3.5.0
       with:
         # Gradle command line arguments (supports multi-line input)
-        arguments: assembleRelease
+        arguments: assembleDebug
     - run: pwd
     - uses: actions/upload-artifact@v4.6.0
       with:
