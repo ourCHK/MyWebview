@@ -26,6 +26,7 @@ jobs:
         arguments: assembleRelease
     - uses: actions/upload-artifact@v4.6.0
       with:
-        name: "*.apk"
+        name: "ArtifactApk"
+        path: "*.apk"
         
     
