@@ -10,7 +10,7 @@ android {
         //这里设置包名
         applicationId "com.dolphin.reader"
         minSdk 23
-        targetSdk 28
+        targetSdk 33
         versionCode 1
         //这里设置版本号
         versionName "1.0"
